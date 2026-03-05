@@ -6,12 +6,18 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
+      },
+      "Combat": {
+        "$path": "src/replicated/Combat"
       }
     },
 
     "ServerScriptService": {
       "Server": {
         "$path": "src/server"
+      },
+      "Combat": {
+        "$path": "src/server/Combat"
       }
     },
 
@@ -19,6 +25,9 @@
       "StarterPlayerScripts": {
         "Client": {
           "$path": "src/client"
+        },
+        "Combat": {
+          "$path": "src/client/Combat"
         }
       }
     },

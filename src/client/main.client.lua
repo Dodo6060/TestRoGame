@@ -1,1 +1,3 @@
-print("Hello world, from client!")
+--!strict
+
+print("Client bootstrap loaded")
