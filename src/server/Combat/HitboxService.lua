@@ -8,7 +8,9 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local SharedUtil = require(ReplicatedStorage.Combat.SharedUtil)
+local combatFolder = ReplicatedStorage:WaitForChild("Combat")
+
+local SharedUtil = require(combatFolder:WaitForChild("SharedUtil") :: ModuleScript)
 
 local HitboxService = {}
 

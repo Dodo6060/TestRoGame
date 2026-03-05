@@ -2,6 +2,7 @@
 
 local ServerScriptService = game:GetService("ServerScriptService")
 
-local CombatService = require(ServerScriptService.Combat.CombatService)
+local combatFolder = ServerScriptService:WaitForChild("Combat")
+local CombatService = require(combatFolder:WaitForChild("CombatService") :: ModuleScript)
 
 CombatService.init()

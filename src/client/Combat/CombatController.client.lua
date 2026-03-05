@@ -12,8 +12,9 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Combat.Config)
-local Remotes = require(ReplicatedStorage.Combat.Remotes)
+local combatFolder = ReplicatedStorage:WaitForChild("Combat")
+local Config = require(combatFolder:WaitForChild("Config") :: ModuleScript)
+local Remotes = require(combatFolder:WaitForChild("Remotes") :: ModuleScript)
 
 local localPlayer = Players.LocalPlayer
 

@@ -11,10 +11,12 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Combat.Config)
-local Remotes = require(ReplicatedStorage.Combat.Remotes)
-local SharedUtil = require(ReplicatedStorage.Combat.SharedUtil)
-local HitboxService = require(script.Parent.HitboxService)
+local combatFolder = ReplicatedStorage:WaitForChild("Combat")
+
+local Config = require(combatFolder:WaitForChild("Config") :: ModuleScript)
+local Remotes = require(combatFolder:WaitForChild("Remotes") :: ModuleScript)
+local SharedUtil = require(combatFolder:WaitForChild("SharedUtil") :: ModuleScript)
+local HitboxService = require(script.Parent:WaitForChild("HitboxService") :: ModuleScript)
 
 type AttackKind = "Light" | "Heavy"
 type PlayerState = "Idle" | "Attacking" | "Stunned" | "Blocking" | "Sprinting"
