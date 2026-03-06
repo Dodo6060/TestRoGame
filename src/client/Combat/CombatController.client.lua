@@ -2,10 +2,10 @@
 
 --[[
 	Client combat controller:
-	- Captures input (M1/M2)
+	- Captures combat + sprint input
 	- Plays local animation quickly for responsive feel
-	- Requests authoritative attack from server
-	- Handles correction events to resync when attack denied
+	- Requests authoritative attack/sprint from server
+	- Handles correction events to resync when denied
 ]]
 
 local Players = game:GetService("Players")
@@ -19,8 +19,10 @@ local Remotes = require(combatFolder:WaitForChild("Remotes") :: ModuleScript)
 local localPlayer = Players.LocalPlayer
 
 local isAttackingPredicted = false
+local isSprintingLocal = false
 local localDebugHitbox = Config.DebugHitboxesDefault
 local activeTracks: { [string]: AnimationTrack } = {}
+local sprintTrack: AnimationTrack? = nil
 
 local function debugLog(...: any)
 	if Config.Debug then
@@ -28,12 +30,20 @@ local function debugLog(...: any)
 	end
 end
 
-local function getAnimator(): Animator?
+local function getCharacterAndHumanoid(): (Model?, Humanoid?)
 	local character = localPlayer.Character
 	if not character then
-		return nil
+		return nil, nil
 	end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return character, nil
+	end
+	return character, humanoid
+end
+
+local function getAnimator(): Animator?
+	local _, humanoid = getCharacterAndHumanoid()
 	if not humanoid then
 		return nil
 	end
@@ -69,7 +79,89 @@ local function stopAllPredictedAnimations()
 	end
 end
 
+local function stopSprintAnimation()
+	if sprintTrack and sprintTrack.IsPlaying then
+		sprintTrack:Stop(0.1)
+	end
+	sprintTrack = nil
+end
+
+local function playSprintAnimation()
+	if Config.Movement.sprintAnimationId == "" then
+		return
+	end
+
+	local animator = getAnimator()
+	if not animator then
+		return
+	end
+
+	stopSprintAnimation()
+	local animation = Instance.new("Animation")
+	animation.AnimationId = Config.Movement.sprintAnimationId
+	local track = animator:LoadAnimation(animation)
+	track.Priority = Enum.AnimationPriority.Movement
+	track:Play(0.12, 1, 1)
+	sprintTrack = track
+end
+
+local function setSprintLocal(nextSprint: boolean)
+	if isSprintingLocal == nextSprint then
+		return
+	end
+
+	isSprintingLocal = nextSprint
+	if nextSprint then
+		playSprintAnimation()
+	else
+		stopSprintAnimation()
+	end
+end
+
+local function canStartSprintLocally(): boolean
+	local _, humanoid = getCharacterAndHumanoid()
+	if not humanoid or humanoid.Health <= 0 then
+		return false
+	end
+
+	if humanoid.Sit then
+		return false
+	end
+
+	local movementState = humanoid:GetState()
+	if movementState == Enum.HumanoidStateType.Dead
+		or movementState == Enum.HumanoidStateType.Physics
+		or movementState == Enum.HumanoidStateType.Ragdoll
+		or movementState == Enum.HumanoidStateType.Seated then
+		return false
+	end
+
+	return true
+end
+
+local function requestSprint(isSprinting: boolean)
+	if isSprinting and not canStartSprintLocally() then
+		return
+	end
+
+	setSprintLocal(isSprinting)
+	Remotes.Combat_SprintRequest:FireServer({
+		isSprinting = isSprinting,
+		clientTime = workspace:GetServerTimeNow(),
+	})
+end
+
 local function requestAttack(attackKind: "Light" | "Heavy")
+	if isSprintingLocal then
+		if Config.Movement.stopSprintOnAttackAttempt then
+			requestSprint(false)
+		else
+			debugLog("Attack ignored during sprint", attackKind)
+		end
+		return
+	end
+
+	stopSprintAnimation()
 	isAttackingPredicted = true
 	Remotes.Combat_AttackRequest:FireServer({
 		attackKind = attackKind,
@@ -86,15 +178,24 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		requestAttack("Light")
 	elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
 		requestAttack("Heavy")
+	elseif input.KeyCode == Config.Movement.sprintKeyCode then
+		requestSprint(true)
 	elseif input.KeyCode == Enum.KeyCode.H then
 		localDebugHitbox = not localDebugHitbox
 		debugLog("Local hitbox debug toggled:", localDebugHitbox)
 	end
 end)
 
+UserInputService.InputEnded:Connect(function(input, _gameProcessed)
+	if input.KeyCode == Config.Movement.sprintKeyCode then
+		requestSprint(false)
+	end
+end)
+
 Remotes.Combat_PlayEffect.OnClientEvent:Connect(function(effectType: string, payload)
 	if effectType == "AttackStarted" then
 		if payload.attackerUserId == localPlayer.UserId then
+			setSprintLocal(false)
 			playAnimation(payload.moveId, payload.animationId)
 		end
 		-- TODO: add world swing VFX/SFX for nearby players
@@ -105,16 +206,43 @@ end)
 
 Remotes.Combat_ServerCorrection.OnClientEvent:Connect(function(payload)
 	debugLog("Server correction:", payload.reason, "state:", payload.state)
+	setSprintLocal(payload.isSprinting == true)
+
 	if isAttackingPredicted then
 		isAttackingPredicted = false
 		stopAllPredictedAnimations()
 	end
-	-- Graceful re-sync hook point for future client state machine.
 end)
 
+local function bindCharacterStateGuards(character: Model)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+
+	humanoid.StateChanged:Connect(function(_, nextState)
+		if not isSprintingLocal then
+			return
+		end
+
+		if nextState == Enum.HumanoidStateType.Dead
+			or nextState == Enum.HumanoidStateType.Physics
+			or nextState == Enum.HumanoidStateType.Ragdoll
+			or nextState == Enum.HumanoidStateType.Seated then
+			requestSprint(false)
+		end
+	end)
+end
+
 -- Minimal character hook so combat is active without extra UI/tool.
-localPlayer.CharacterAdded:Connect(function()
+localPlayer.CharacterAdded:Connect(function(character)
+	setSprintLocal(false)
+	bindCharacterStateGuards(character)
 	debugLog("Character spawned, combat input active")
 end)
+
+if localPlayer.Character then
+	bindCharacterStateGuards(localPlayer.Character)
+end
 
 debugLog("CombatController started")

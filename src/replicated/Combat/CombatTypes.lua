@@ -42,12 +42,18 @@ export type AttackRequest = {
 	clientTime: number,
 }
 
+export type SprintRequest = {
+	isSprinting: boolean,
+	clientTime: number,
+}
+
 export type ServerCorrectionPayload = {
 	reason: string,
 	state: PlayerState,
 	comboIndex: number,
 	nextAttackTime: number,
 	serverTime: number,
+	isSprinting: boolean,
 }
 
 CombatTypes.AttackKind = {

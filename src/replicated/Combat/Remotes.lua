@@ -6,6 +6,7 @@
 	- Combat_AttackRequest (client -> server)
 	- Combat_PlayEffect (server -> all clients)
 	- Combat_ServerCorrection (server -> client)
+	- Combat_SprintRequest (client -> server)
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -35,6 +36,7 @@ local Remotes = {
 	Combat_AttackRequest = getOrCreateRemote(remotesFolder, "Combat_AttackRequest"),
 	Combat_PlayEffect = getOrCreateRemote(remotesFolder, "Combat_PlayEffect"),
 	Combat_ServerCorrection = getOrCreateRemote(remotesFolder, "Combat_ServerCorrection"),
+	Combat_SprintRequest = getOrCreateRemote(remotesFolder, "Combat_SprintRequest"),
 }
 
 return Remotes

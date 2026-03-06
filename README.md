@@ -34,6 +34,7 @@ rojo serve
 
 - **M1**: Light attack combo (4-hit chain)
 - **M2**: Heavy attack
+- **LeftShift**: Sprint (hold)
 - **H**: Toggle local debug flag print (client debug keybind)
 
 ## System Architecture
@@ -47,7 +48,7 @@ rojo serve
 
 ### Server (`CombatService.lua` + `HitboxService.lua`)
 
-- Owns authoritative state per player: `Idle`, `Attacking`, `Stunned` (with optional state constants for blocking/sprinting).
+- Owns authoritative state per player: `Idle`, `Attacking`, `Stunned`, `Sprinting`.
 - Validates every request:
   - payload shape + attack kind
   - server-time delta guard
@@ -57,6 +58,8 @@ rojo serve
 - Performs hit detection server-side with `workspace:GetPartBoundsInBox`.
 - Applies damage, stun, and knockback on server only.
 - Replicates VFX/SFX hooks to all clients using `Combat_PlayEffect`.
+- Sprint is server-authoritative via `Combat_SprintRequest` and is validated against stun/attack/non-movable states.
+- Sprint/attack interaction is configurable via `Config.Movement.stopSprintOnAttackAttempt`.
 
 ## Security Decisions (Exploit Resistance)
 
@@ -90,3 +93,11 @@ To add a weapon:
 - R15-compatible by targeting `Humanoid` + `HumanoidRootPart`.
 - Debug logging is controlled by `Config.Debug`.
 - Optional server hitbox debug visualization can be toggled via `Config.DebugHitboxesDefault`.
+
+## Configuration highlights
+
+- `Config.Movement.normalWalkSpeed`: baseline movement speed.
+- `Config.Movement.sprintWalkSpeed`: movement speed while sprinting.
+- `Config.Movement.stunWalkSpeed`: movement speed while stunned.
+- `Config.Movement.sprintKeyCode`: sprint keybind (defaults to `LeftShift`).
+- `Config.Movement.stopSprintOnAttackAttempt`: if `true`, attack input while sprinting only cancels sprint; if `false`, attacks are ignored while sprinting.

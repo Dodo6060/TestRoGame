@@ -14,6 +14,15 @@ Config.MaxServerValidationLatency = 0.6
 Config.GlobalAttackBuffer = 0.04
 Config.DebugHitboxesDefault = false
 
+Config.Movement = {
+	normalWalkSpeed = 16,
+	sprintWalkSpeed = 24,
+	stunWalkSpeed = 5,
+	sprintKeyCode = Enum.KeyCode.LeftShift,
+	stopSprintOnAttackAttempt = true,
+	sprintAnimationId = "", -- TODO: add sprint animation asset id if desired
+}
+
 Config.Weapons = {
 	Sword = {
 		lightComboWindow = 0.9,
